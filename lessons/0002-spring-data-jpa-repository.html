@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 02 — Spring Data JPA & JpaRepository</title>
+<style>
+  :root {
+    --green: #22c55e; --green-light: #dcfce7;
+    --blue: #3b82f6; --blue-light: #eff6ff;
+    --yellow: #fbbf24; --yellow-light: #fffbeb;
+    --purple: #8b5cf6; --purple-light: #f5f3ff;
+    --red: #ef4444; --red-light: #fef2f2;
+    --border: #e2e8f0; --text: #1e293b; --muted: #64748b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background:#fff; color:var(--text); line-height:1.7; font-size:16px; }
+
+  .hero { background: linear-gradient(135deg, #1e3a5f 0%, #6d28d9 100%); color:white; padding:48px 24px 40px; text-align:center; }
+  .hero .badge { display:inline-block; background:rgba(255,255,255,0.15); border-radius:20px; padding:4px 14px; font-size:13px; letter-spacing:.05em; margin-bottom:16px; }
+  .hero h1 { font-size:clamp(1.5rem,4vw,2.2rem); font-weight:700; margin-bottom:12px; }
+  .hero p { opacity:.85; font-size:1.05rem; max-width:560px; margin:0 auto; }
+
+  .container { max-width:720px; margin:0 auto; padding:40px 20px 80px; }
+
+  .mission-box { background:var(--blue-light); border-left:4px solid var(--blue); border-radius:8px; padding:16px 20px; margin-bottom:36px; font-size:.95rem; }
+  .mission-box strong { color:var(--blue); }
+
+  h2 { font-size:1.3rem; font-weight:700; margin:40px 0 12px; }
+  h3 { font-size:1.05rem; font-weight:600; margin:24px 0 8px; }
+  p { margin-bottom:14px; }
+
+  .analogy { background:var(--yellow-light); border-left:4px solid var(--yellow); border-radius:8px; padding:16px 20px; margin:20px 0; font-size:.95rem; }
+
+  code { background:#f1f5f9; padding:2px 6px; border-radius:4px; font-family:"JetBrains Mono","Fira Code",monospace; font-size:.88em; color:#be185d; }
+
+  pre { background:#0f172a; color:#e2e8f0; border-radius:10px; padding:20px; overflow-x:auto; margin:16px 0 24px; font-size:.86rem; font-family:"JetBrains Mono","Fira Code",monospace; line-height:1.6; }
+  pre .comment { color:#64748b; }
+  pre .annotation { color:#34d399; }
+  pre .keyword { color:#93c5fd; }
+  pre .string { color:#fbbf24; }
+  pre .class-name { color:#f9a8d4; }
+  pre .number { color:#fb923c; }
+
+  .layer-diagram { display:flex; flex-direction:column; gap:0; margin:24px 0; border-radius:10px; overflow:hidden; border:1px solid var(--border); }
+  .layer { padding:14px 20px; display:flex; align-items:center; gap:12px; }
+  .layer .label { font-weight:600; font-size:.9rem; min-width:180px; }
+  .layer .desc { font-size:.85rem; color:var(--muted); }
+  .layer-controller { background:#eff6ff; }
+  .layer-service { background:#f5f3ff; }
+  .layer-repo { background:#f0fdf4; }
+  .layer-jpa { background:#fffbeb; }
+  .layer-db { background:#fef2f2; }
+  .layer-arrow { text-align:center; font-size:1.2rem; color:var(--muted); padding:4px; background:#f8fafc; }
+
+  .step { display:flex; gap:16px; margin:20px 0; align-items:flex-start; }
+  .step-num { background:#6d28d9; color:white; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.9rem; flex-shrink:0; margin-top:2px; }
+  .step-body { flex:1; }
+  .step-body strong { display:block; margin-bottom:4px; }
+
+  .labelradar-box { background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:20px 24px; margin:28px 0; }
+  .labelradar-box h3 { color:#166534; margin-top:0; }
+
+  .warning-box { background:var(--yellow-light); border:1px solid #fde68a; border-radius:10px; padding:16px 20px; margin:20px 0; font-size:.93rem; }
+  .warning-box strong { color:#92400e; }
+
+  .quiz-section { background:#f8fafc; border:1px solid var(--border); border-radius:12px; padding:28px; margin:40px 0; }
+  .quiz-section h2 { margin-top:0; }
+  .question { margin-bottom:28px; }
+  .question p { font-weight:600; margin-bottom:12px; }
+  .options { display:flex; flex-direction:column; gap:10px; }
+  .option { background:white; border:2px solid var(--border); border-radius:8px; padding:12px 16px; cursor:pointer; transition:all .15s; font-size:.95rem; text-align:left; width:100%; }
+  .option:hover { border-color:var(--blue); background:var(--blue-light); }
+  .option.correct { border-color:var(--green); background:var(--green-light); }
+  .option.wrong { border-color:var(--red); background:var(--red-light); }
+  .option:disabled { cursor:default; }
+  .feedback { display:none; margin-top:12px; padding:12px 16px; border-radius:8px; font-size:.92rem; }
+  .feedback.show { display:block; }
+  .feedback.correct { background:var(--green-light); color:#166534; border-left:3px solid var(--green); }
+  .feedback.wrong { background:var(--red-light); color:#991b1b; border-left:3px solid var(--red); }
+
+  .score-box { display:none; text-align:center; padding:28px; background:linear-gradient(135deg,#1e3a5f,#6d28d9); color:white; border-radius:12px; margin-top:20px; }
+  .score-box.show { display:block; }
+  .score-box .score-num { font-size:3rem; font-weight:800; }
+  .score-box p { opacity:.9; margin-top:8px; }
+
+  .cite { font-size:.82rem; color:var(--muted); }
+  .cite a { color:var(--blue); text-decoration:none; }
+  .next-hint { background:#f8fafc; border:1px dashed var(--border); border-radius:8px; padding:16px 20px; margin-top:40px; font-size:.92rem; color:var(--muted); text-align:center; }
+
+  table { width:100%; border-collapse:collapse; margin:16px 0 24px; font-size:.88rem; }
+  th { background:#1e3a5f; color:white; padding:10px 14px; text-align:left; }
+  td { padding:10px 14px; border-bottom:1px solid var(--border); }
+  tr:nth-child(even) td { background:#f8fafc; }
+  td code { font-size:.82rem; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="badge">LESSON 02 · SPRING DATA JPA</div>
+  <h1>How JpaRepository Works Under the Hood</h1>
+  <p>From your interface to an SQL query — and back to your LabelRadar entities</p>
+</div>
+
+<div class="container">
+
+  <div class="mission-box">
+    <strong>🎯 Mission:</strong> LabelRadar uses Spring Data JPA to talk to MySQL 5.7.
+    After this lesson you'll know exactly what happens between writing
+    <code>labelRepository.findById(id)</code> and getting a row back from the database.
+  </div>
+
+  <h2>The Big Picture — Layers</h2>
+
+  <p>Spring Boot apps using JPA typically have this stack. Every layer has one job:</p>
+
+  <div class="layer-diagram">
+    <div class="layer layer-controller">
+      <span class="label">🌐 Controller</span>
+      <span class="desc">HTTP in → calls Service → HTTP out</span>
+    </div>
+    <div class="layer-arrow">↓</div>
+    <div class="layer layer-service">
+      <span class="label">⚙️ Service</span>
+      <span class="desc">Business logic, @Transactional lives here</span>
+    </div>
+    <div class="layer-arrow">↓</div>
+    <div class="layer layer-repo">
+      <span class="label">📦 Repository</span>
+      <span class="desc">Your interface — extends JpaRepository</span>
+    </div>
+    <div class="layer-arrow">↓</div>
+    <div class="layer layer-jpa">
+      <span class="label">🔧 Spring Data JPA</span>
+      <span class="desc">Generates implementations at startup using Hibernate</span>
+    </div>
+    <div class="layer-arrow">↓</div>
+    <div class="layer layer-db">
+      <span class="label">🗄️ MySQL 5.7</span>
+      <span class="desc">Actual SQL queries via JDBC connection pool (HikariCP)</span>
+    </div>
+  </div>
+
+  <h2>What is JpaRepository — Really?</h2>
+
+  <p>When you write this:</p>
+
+<pre><span class="keyword">public interface</span> <span class="class-name">LabelRepository</span> <span class="keyword">extends</span> <span class="class-name">JpaRepository</span>&lt;<span class="class-name">Label</span>, <span class="class-name">Long</span>&gt; {
+}</pre>
+
+  <p>You're declaring an interface with <strong>zero implementation code</strong>. Yet you can immediately call
+  <code>save()</code>, <code>findById()</code>, <code>findAll()</code>, <code>deleteById()</code>...
+  How?</p>
+
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <strong>JpaRepository inherits from a chain of interfaces</strong>
+      <p>Each level adds more methods:</p>
+    </div>
+  </div>
+
+<pre><span class="class-name">JpaRepository</span>&lt;T, ID&gt;
+  └─ <span class="class-name">PagingAndSortingRepository</span>&lt;T, ID&gt;   <span class="comment">// findAll(Sort), findAll(Pageable)</span>
+       └─ <span class="class-name">CrudRepository</span>&lt;T, ID&gt;            <span class="comment">// save, findById, findAll, delete, count</span>
+            └─ <span class="class-name">Repository</span>&lt;T, ID&gt;             <span class="comment">// marker interface only</span></pre>
+
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <strong>At startup, Spring generates a real implementation</strong>
+      <p>Spring Data scans for all interfaces extending <code>Repository</code>, then creates a
+      <code>SimpleJpaRepository</code> proxy for each one — automatically, as a Spring bean.</p>
+    </div>
+  </div>
+
+<pre><span class="comment">// You never write this — Spring generates it behind the scenes:</span>
+<span class="keyword">public class</span> <span class="class-name">SimpleJpaRepository</span>&lt;T, ID&gt; <span class="keyword">implements</span> <span class="class-name">JpaRepository</span>&lt;T, ID&gt; {
+
+    <span class="keyword">private final</span> <span class="class-name">EntityManager</span> em;
+
+    <span class="keyword">public</span> T findById(ID id) {
+        <span class="keyword">return</span> em.find(entityClass, id); <span class="comment">// translates to: SELECT * FROM label WHERE id=?</span>
+    }
+
+    <span class="keyword">public</span> T save(T entity) {
+        <span class="keyword">if</span> (isNew(entity)) em.persist(entity);  <span class="comment">// INSERT</span>
+        <span class="keyword">else</span> em.merge(entity);                 <span class="comment">// UPDATE</span>
+        <span class="keyword">return</span> entity;
+    }
+}</pre>
+
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <strong>EntityManager talks to Hibernate, Hibernate talks to MySQL</strong>
+      <p>The <code>EntityManager</code> is the JPA API. Hibernate is the implementation.
+      It translates your object operations into SQL and sends them through HikariCP to MySQL 5.7.</p>
+    </div>
+  </div>
+
+  <h2>Derived Query Methods — The Real Power</h2>
+
+  <p>Spring Data reads your method names and <strong>generates SQL automatically</strong>:</p>
+
+<pre><span class="keyword">public interface</span> <span class="class-name">LabelRepository</span> <span class="keyword">extends</span> <span class="class-name">JpaRepository</span>&lt;<span class="class-name">Label</span>, <span class="class-name">Long</span>&gt; {
+
+    <span class="comment">// SELECT * FROM label WHERE name = ?</span>
+    <span class="class-name">List</span>&lt;<span class="class-name">Label</span>&gt; findByName(<span class="class-name">String</span> name);
+
+    <span class="comment">// SELECT * FROM label WHERE name = ? AND active = ?</span>
+    <span class="class-name">List</span>&lt;<span class="class-name">Label</span>&gt; findByNameAndActive(<span class="class-name">String</span> name, <span class="keyword">boolean</span> active);
+
+    <span class="comment">// SELECT * FROM label WHERE name LIKE ?</span>
+    <span class="class-name">List</span>&lt;<span class="class-name">Label</span>&gt; findByNameContaining(<span class="class-name">String</span> keyword);
+
+    <span class="comment">// SELECT COUNT(*) FROM label WHERE active = ?</span>
+    <span class="keyword">long</span> countByActive(<span class="keyword">boolean</span> active);
+
+    <span class="comment">// DELETE FROM label WHERE name = ?</span>
+    <span class="keyword">void</span> deleteByName(<span class="class-name">String</span> name);
+}</pre>
+
+  <p>The naming convention is: <code>findBy</code> / <code>countBy</code> / <code>deleteBy</code>
+  + field names + keywords like <code>And</code>, <code>Or</code>, <code>Containing</code>,
+  <code>Between</code>, <code>OrderBy</code>...</p>
+
+  <table>
+    <tr><th>Method name keyword</th><th>SQL equivalent</th></tr>
+    <tr><td><code>findByName</code></td><td><code>WHERE name = ?</code></td></tr>
+    <tr><td><code>findByNameContaining</code></td><td><code>WHERE name LIKE %?%</code></td></tr>
+    <tr><td><code>findByAgeGreaterThan</code></td><td><code>WHERE age > ?</code></td></tr>
+    <tr><td><code>findByActiveTrue</code></td><td><code>WHERE active = true</code></td></tr>
+    <tr><td><code>findByNameOrderByCreatedAtDesc</code></td><td><code>WHERE name = ? ORDER BY created_at DESC</code></td></tr>
+    <tr><td><code>findTop3ByOrderByCreatedAtDesc</code></td><td><code>ORDER BY created_at DESC LIMIT 3</code></td></tr>
+  </table>
+
+  <h2>When Derived Queries Aren't Enough — @Query</h2>
+
+  <p>For complex queries, use <code>@Query</code> with JPQL (or native SQL):</p>
+
+<pre><span class="annotation">@Query</span>(<span class="string">"SELECT l FROM Label l WHERE l.genre = :genre AND l.active = true ORDER BY l.createdAt DESC"</span>)
+<span class="class-name">List</span>&lt;<span class="class-name">Label</span>&gt; findActiveByGenre(<span class="annotation">@Param</span>(<span class="string">"genre"</span>) <span class="class-name">String</span> genre);
+
+<span class="comment">// Or native SQL if you need MySQL-specific syntax:</span>
+<span class="annotation">@Query</span>(value = <span class="string">"SELECT * FROM label WHERE MATCH(name) AGAINST (:term IN BOOLEAN MODE)"</span>,
+       nativeQuery = <span class="keyword">true</span>)
+<span class="class-name">List</span>&lt;<span class="class-name">Label</span>&gt; fullTextSearch(<span class="annotation">@Param</span>(<span class="string">"term"</span>) <span class="class-name">String</span> term);</pre>
+
+  <div class="labelradar-box">
+    <h3>🔍 LabelRadar Example — Full Entity + Repository</h3>
+
+<pre style="margin:12px 0 0; font-size:.82rem;"><span class="annotation">@Entity</span>
+<span class="annotation">@Table</span>(name = <span class="string">"labels"</span>)
+<span class="keyword">public class</span> <span class="class-name">Label</span> {
+
+    <span class="annotation">@Id</span>
+    <span class="annotation">@GeneratedValue</span>(strategy = GenerationType.IDENTITY)
+    <span class="keyword">private</span> <span class="class-name">Long</span> id;
+
+    <span class="annotation">@Column</span>(nullable = <span class="keyword">false</span>)
+    <span class="keyword">private</span> <span class="class-name">String</span> name;
+
+    <span class="keyword">private</span> <span class="class-name">String</span> genre;
+
+    <span class="annotation">@Column</span>(name = <span class="string">"created_at"</span>)
+    <span class="keyword">private</span> <span class="class-name">LocalDateTime</span> createdAt;
+
+    <span class="comment">// getters + setters</span>
+}
+
+<span class="annotation">@Repository</span>
+<span class="keyword">public interface</span> <span class="class-name">LabelRepository</span> <span class="keyword">extends</span> <span class="class-name">JpaRepository</span>&lt;<span class="class-name">Label</span>, <span class="class-name">Long</span>&gt; {
+
+    <span class="class-name">List</span>&lt;<span class="class-name">Label</span>&gt; findByGenre(<span class="class-name">String</span> genre);
+
+    <span class="class-name">List</span>&lt;<span class="class-name">Label</span>&gt; findTop10ByOrderByCreatedAtDesc();
+
+    <span class="annotation">@Query</span>(<span class="string">"SELECT l FROM Label l WHERE LOWER(l.name) LIKE LOWER(CONCAT('%', :q, '%'))"</span>)
+    <span class="class-name">List</span>&lt;<span class="class-name">Label</span>&gt; searchByName(<span class="annotation">@Param</span>(<span class="string">"q"</span>) <span class="class-name">String</span> q);
+}</pre>
+  </div>
+
+  <div class="warning-box">
+    <strong>⚠️ MySQL 5.7 gotcha:</strong> <code>spring.jpa.hibernate.ddl-auto=update</code> will
+    try to auto-create/alter tables. In production, set it to <code>validate</code> or <code>none</code>
+    and use Flyway/Liquibase for migrations instead. This is especially important with MySQL 5.7
+    which has stricter default SQL mode.
+  </div>
+
+  <p class="cite">📖 Further reading:
+    <a href="https://docs.spring.io/spring-data/jpa/docs/current/reference/html/#jpa.query-methods" target="_blank">Spring Data JPA — Query Methods</a> ·
+    <a href="https://www.baeldung.com/spring-data-derived-queries" target="_blank">Baeldung — Derived Query Methods</a>
+  </p>
+
+  <!-- QUIZ -->
+  <div class="quiz-section">
+    <h2>🧠 Quick Check</h2>
+    <p style="color:var(--muted);font-size:.9rem;margin-bottom:24px;">4 questions — tap your answer</p>
+
+    <div class="question" id="q1">
+      <p>1. You declare <code>LabelRepository extends JpaRepository&lt;Label, Long&gt;</code> with no methods. How many methods does it have available?</p>
+      <div class="options">
+        <button class="option" onclick="answer(this,'q1',false)">A) 0 — you wrote no implementation</button>
+        <button class="option" onclick="answer(this,'q1',false)">B) Only the ones you explicitly declare</button>
+        <button class="option" onclick="answer(this,'q1',true)">C) ~18 — inherited from CrudRepository + PagingAndSortingRepository + JpaRepository</button>
+        <button class="option" onclick="answer(this,'q1',false)">D) Unlimited — Spring generates whatever you need</button>
+      </div>
+      <div class="feedback" id="q1-feedback"></div>
+    </div>
+
+    <div class="question" id="q2">
+      <p>2. What SQL does <code>findByGenreAndActiveTrue("Electronic")</code> generate?</p>
+      <div class="options">
+        <button class="option" onclick="answer(this,'q2',false)">A) <code>SELECT * FROM label WHERE genre="Electronic"</code></button>
+        <button class="option" onclick="answer(this,'q2',true)">B) <code>SELECT * FROM label WHERE genre = ? AND active = true</code></button>
+        <button class="option" onclick="answer(this,'q2',false)">C) <code>SELECT * FROM label WHERE genre = ? OR active = true</code></button>
+        <button class="option" onclick="answer(this,'q2',false)">D) Compile error — you must use @Query for multi-condition queries</button>
+      </div>
+      <div class="feedback" id="q2-feedback"></div>
+    </div>
+
+    <div class="question" id="q3">
+      <p>3. What's the difference between JPQL in <code>@Query</code> and native SQL?</p>
+      <div class="options">
+        <button class="option" onclick="answer(this,'q3',false)">A) JPQL is faster; native SQL is for complex joins only</button>
+        <button class="option" onclick="answer(this,'q3',false)">B) They're identical — JPQL compiles to native SQL at runtime</button>
+        <button class="option" onclick="answer(this,'q3',true)">C) JPQL uses entity/field names and is database-agnostic; native SQL uses table/column names and is MySQL-specific</button>
+        <button class="option" onclick="answer(this,'q3',false)">D) JPQL only works for SELECT; native SQL works for all operations</button>
+      </div>
+      <div class="feedback" id="q3-feedback"></div>
+    </div>
+
+    <div class="question" id="q4">
+      <p>4. In production LabelRadar, which <code>ddl-auto</code> setting should you use?</p>
+      <div class="options">
+        <button class="option" onclick="answer(this,'q4',false)">A) <code>create-drop</code> — recreates schema on every start</button>
+        <button class="option" onclick="answer(this,'q4',false)">B) <code>update</code> — automatically applies schema changes</button>
+        <button class="option" onclick="answer(this,'q4',true)">C) <code>validate</code> or <code>none</code> — manage schema changes with Flyway instead</button>
+        <button class="option" onclick="answer(this,'q4',false)">D) <code>create</code> — creates tables if missing</button>
+      </div>
+      <div class="feedback" id="q4-feedback"></div>
+    </div>
+
+    <div class="score-box" id="score-box">
+      <div class="score-num" id="score-num"></div>
+      <p id="score-msg"></p>
+    </div>
+  </div>
+
+  <div class="next-hint">
+    💬 <strong>Got questions?</strong> Ask Claude: <em>"Show me how pagination works with JpaRepository"</em>
+    or <em>"What's the N+1 problem and how do I avoid it in LabelRadar?"</em><br><br>
+    ➡️ <strong>Next lesson:</strong> @Transactional — when and how transactions work in Spring Boot + MySQL
+  </div>
+
+</div>
+
+<script>
+  const feedbacks = {
+    q1: {
+      correct: "Correct! JpaRepository inherits from CrudRepository (save, findById, findAll, delete, count, exists) and PagingAndSortingRepository (findAll with Sort/Pageable), plus JPA-specific methods like flush() and saveAndFlush().",
+      wrong: "Actually, JpaRepository inherits ~18 methods through the repository hierarchy — you get all of CrudRepository + PagingAndSortingRepository + JPA-specific methods for free."
+    },
+    q2: {
+      correct: "Exactly! Spring Data parses the method name: findBy = SELECT, Genre = WHERE genre =, And = AND, ActiveTrue = active = true. The parameter maps to the ? placeholder.",
+      wrong: "Spring Data parses 'findByGenreAndActiveTrue' as: genre = parameter AND active = true. The 'True' suffix is a keyword that hardcodes the boolean condition."
+    },
+    q3: {
+      correct: "Right! JPQL (Java Persistence Query Language) works on your Java entities and fields — so it stays correct even if you rename a database column via @Column. Native SQL bypasses that abstraction and talks directly to MySQL.",
+      wrong: "The key difference is abstraction level. JPQL uses entity/field names and is portable across databases. Native SQL (nativeQuery=true) uses real table/column names and ties you to MySQL syntax."
+    },
+    q4: {
+      correct: "Yes! In production, never let Hibernate auto-modify your schema. Use validate to catch mismatches at startup, or none and manage all migrations with Flyway — which gives you version-controlled, repeatable schema changes.",
+      wrong: "In production, update is risky — it can make destructive changes and doesn't handle all cases. Use validate or none, and manage schema with Flyway for reliable, repeatable migrations."
+    }
+  };
+
+  let answered = {q1:false, q2:false, q3:false, q4:false};
+  let correct = 0, total = 0;
+
+  function answer(btn, qid, isCorrect) {
+    if (answered[qid]) return;
+    answered[qid] = true;
+    total++;
+
+    const options = btn.parentElement.querySelectorAll(".option");
+    options.forEach(o => o.disabled = true);
+    const feedback = document.getElementById(qid + "-feedback");
+
+    if (isCorrect) {
+      btn.classList.add("correct");
+      feedback.textContent = "✅ " + feedbacks[qid].correct;
+      feedback.className = "feedback show correct";
+      correct++;
+    } else {
+      btn.classList.add("wrong");
+      feedback.textContent = "❌ " + feedbacks[qid].wrong;
+      feedback.className = "feedback show wrong";
+      options.forEach(o => { if (o.onclick.toString().includes(",true)")) o.classList.add("correct"); });
+    }
+
+    if (total === 4) setTimeout(showScore, 600);
+  }
+
+  function showScore() {
+    const box = document.getElementById("score-box");
+    document.getElementById("score-num").textContent = correct + "/4";
+    const msgs = ["Go back through the lesson — focus on the method naming convention.", "Good start! Review the ddl-auto section.", "Solid! One more pass and you'll have it.", "Perfect! You understand how JPA wires up to MySQL."];
+    document.getElementById("score-msg").textContent = msgs[correct];
+    box.classList.add("show");
+  }
+</script>
+
+</body>
+</html>
