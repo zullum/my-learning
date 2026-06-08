@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 03 — @Transactional in Spring Boot</title>
+<style>
+  :root {
+    --green: #22c55e; --green-light: #dcfce7;
+    --blue: #3b82f6; --blue-light: #eff6ff;
+    --yellow: #fbbf24; --yellow-light: #fffbeb;
+    --orange: #f97316; --orange-light: #fff7ed;
+    --red: #ef4444; --red-light: #fef2f2;
+    --border: #e2e8f0; --text: #1e293b; --muted: #64748b;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:#fff; color:var(--text); line-height:1.7; font-size:16px; }
+
+  .hero { background:linear-gradient(135deg,#1e3a5f 0%,#c2410c 100%); color:white; padding:48px 24px 40px; text-align:center; }
+  .hero .badge { display:inline-block; background:rgba(255,255,255,0.15); border-radius:20px; padding:4px 14px; font-size:13px; letter-spacing:.05em; margin-bottom:16px; }
+  .hero h1 { font-size:clamp(1.5rem,4vw,2.2rem); font-weight:700; margin-bottom:12px; }
+  .hero p { opacity:.85; font-size:1.05rem; max-width:560px; margin:0 auto; }
+
+  .container { max-width:720px; margin:0 auto; padding:40px 20px 80px; }
+
+  .mission-box { background:var(--blue-light); border-left:4px solid var(--blue); border-radius:8px; padding:16px 20px; margin-bottom:36px; font-size:.95rem; }
+  .mission-box strong { color:var(--blue); }
+
+  h2 { font-size:1.3rem; font-weight:700; margin:40px 0 12px; }
+  h3 { font-size:1.05rem; font-weight:600; margin:24px 0 8px; }
+  p { margin-bottom:14px; }
+
+  .analogy { background:var(--yellow-light); border-left:4px solid var(--yellow); border-radius:8px; padding:16px 20px; margin:20px 0; font-size:.95rem; }
+  .warning-box { background:var(--orange-light); border:1px solid #fed7aa; border-radius:10px; padding:16px 20px; margin:20px 0; font-size:.93rem; }
+  .warning-box strong { color:#9a3412; }
+  .danger-box { background:var(--red-light); border:1px solid #fecaca; border-radius:10px; padding:16px 20px; margin:20px 0; font-size:.93rem; }
+  .danger-box strong { color:#991b1b; }
+
+  code { background:#f1f5f9; padding:2px 6px; border-radius:4px; font-family:"JetBrains Mono","Fira Code",monospace; font-size:.88em; color:#be185d; }
+
+  pre { background:#0f172a; color:#e2e8f0; border-radius:10px; padding:20px; overflow-x:auto; margin:16px 0 24px; font-size:.86rem; font-family:"JetBrains Mono","Fira Code",monospace; line-height:1.6; }
+  pre .comment { color:#64748b; }
+  pre .annotation { color:#34d399; }
+  pre .keyword { color:#93c5fd; }
+  pre .string { color:#fbbf24; }
+  pre .class-name { color:#f9a8d4; }
+
+  .step { display:flex; gap:16px; margin:20px 0; align-items:flex-start; }
+  .step-num { background:#c2410c; color:white; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.9rem; flex-shrink:0; margin-top:2px; }
+  .step-body { flex:1; }
+  .step-body strong { display:block; margin-bottom:4px; }
+
+  .flow { display:flex; flex-direction:column; gap:0; margin:20px 0; }
+  .flow-item { display:flex; align-items:center; gap:12px; padding:12px 16px; background:#f8fafc; border:1px solid var(--border); }
+  .flow-item:first-child { border-radius:8px 8px 0 0; }
+  .flow-item:last-child { border-radius:0 0 8px 8px; }
+  .flow-arrow { text-align:center; font-size:1rem; color:var(--muted); padding:2px 16px; background:#f1f5f9; border-left:1px solid var(--border); border-right:1px solid var(--border); }
+  .flow-icon { font-size:1.3rem; }
+  .flow-label { font-weight:600; font-size:.9rem; }
+  .flow-desc { font-size:.82rem; color:var(--muted); margin-top:2px; }
+
+  .labelradar-box { background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:20px 24px; margin:28px 0; }
+  .labelradar-box h3 { color:#166534; margin-top:0; }
+
+  table { width:100%; border-collapse:collapse; margin:16px 0 24px; font-size:.88rem; }
+  th { background:#1e3a5f; color:white; padding:10px 14px; text-align:left; }
+  td { padding:10px 14px; border-bottom:1px solid var(--border); vertical-align:top; }
+  tr:nth-child(even) td { background:#f8fafc; }
+  td code { font-size:.82rem; }
+
+  .quiz-section { background:#f8fafc; border:1px solid var(--border); border-radius:12px; padding:28px; margin:40px 0; }
+  .quiz-section h2 { margin-top:0; }
+  .question { margin-bottom:28px; }
+  .question p { font-weight:600; margin-bottom:12px; }
+  .options { display:flex; flex-direction:column; gap:10px; }
+  .option { background:white; border:2px solid var(--border); border-radius:8px; padding:12px 16px; cursor:pointer; transition:all .15s; font-size:.93rem; text-align:left; width:100%; }
+  .option:hover { border-color:var(--blue); background:var(--blue-light); }
+  .option.correct { border-color:var(--green); background:var(--green-light); }
+  .option.wrong { border-color:var(--red); background:var(--red-light); }
+  .option:disabled { cursor:default; }
+  .feedback { display:none; margin-top:12px; padding:12px 16px; border-radius:8px; font-size:.92rem; }
+  .feedback.show { display:block; }
+  .feedback.correct { background:var(--green-light); color:#166534; border-left:3px solid var(--green); }
+  .feedback.wrong { background:var(--red-light); color:#991b1b; border-left:3px solid var(--red); }
+
+  .score-box { display:none; text-align:center; padding:28px; background:linear-gradient(135deg,#1e3a5f,#c2410c); color:white; border-radius:12px; margin-top:20px; }
+  .score-box.show { display:block; }
+  .score-box .score-num { font-size:3rem; font-weight:800; }
+  .score-box p { opacity:.9; margin-top:8px; }
+
+  .cite { font-size:.82rem; color:var(--muted); }
+  .cite a { color:var(--blue); text-decoration:none; }
+  .next-hint { background:#f8fafc; border:1px dashed var(--border); border-radius:8px; padding:16px 20px; margin-top:40px; font-size:.92rem; color:var(--muted); text-align:center; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="badge">LESSON 03 · SPRING BOOT</div>
+  <h1>@Transactional — How Transactions Really Work</h1>
+  <p>The most misunderstood annotation in Spring Boot — and the most dangerous when misused</p>
+</div>
+
+<div class="container">
+
+  <div class="mission-box">
+    <strong>🎯 Mission:</strong> LabelRadar writes to MySQL 5.7 — labels, users, submissions.
+    When multiple writes happen together (e.g. create a submission + update a counter),
+    transactions protect you from partial failures. This lesson shows you exactly how
+    <code>@Transactional</code> works — and the gotchas that bite everyone.
+  </div>
+
+  <h2>What Is a Transaction?</h2>
+
+  <p>A transaction is a group of database operations that either <strong>all succeed</strong> or
+  <strong>all get rolled back</strong> — as if none of them happened.</p>
+
+  <div class="analogy">
+    💡 <strong>Analogy:</strong> Transferring money between bank accounts.
+    You debit one account and credit another. If the credit fails after the debit,
+    you want the debit rolled back too. That's a transaction — all or nothing.
+  </div>
+
+  <h2>How @Transactional Works — Step by Step</h2>
+
+  <p>When you annotate a method with <code>@Transactional</code>, Spring wraps it in a
+  <strong>proxy</strong> (same mechanism as auto-configuration). Here's what happens at runtime:</p>
+
+  <div class="flow">
+    <div class="flow-item">
+      <span class="flow-icon">📥</span>
+      <div><div class="flow-label">1. Proxy intercepts the method call</div><div class="flow-desc">Spring's AOP proxy catches the call before your code runs</div></div>
+    </div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-item">
+      <span class="flow-icon">🔗</span>
+      <div><div class="flow-label">2. BEGIN TRANSACTION on the DB connection</div><div class="flow-desc">Gets a connection from HikariCP, calls setAutoCommit(false)</div></div>
+    </div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-item">
+      <span class="flow-icon">⚙️</span>
+      <div><div class="flow-label">3. Your method runs</div><div class="flow-desc">All repository calls use this same connection/transaction</div></div>
+    </div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-item">
+      <span class="flow-icon">✅</span>
+      <div><div class="flow-label">4a. No exception → COMMIT</div><div class="flow-desc">All changes are written to MySQL permanently</div></div>
+    </div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-item">
+      <span class="flow-icon">💥</span>
+      <div><div class="flow-label">4b. RuntimeException thrown → ROLLBACK</div><div class="flow-desc">All changes from this transaction are discarded</div></div>
+    </div>
+  </div>
+
+<pre><span class="annotation">@Service</span>
+<span class="keyword">public class</span> <span class="class-name">SubmissionService</span> {
+
+    <span class="annotation">@Transactional</span>  <span class="comment">// wraps the entire method in one transaction</span>
+    <span class="keyword">public void</span> submitLabel(<span class="class-name">Long</span> labelId, <span class="class-name">Long</span> userId) {
+        <span class="class-name">Label</span> label = labelRepository.findById(labelId).orElseThrow();
+        label.setSubmissionCount(label.getSubmissionCount() + <span class="number">1</span>);
+        labelRepository.save(label);           <span class="comment">// write 1</span>
+
+        <span class="class-name">Submission</span> sub = <span class="keyword">new</span> <span class="class-name">Submission</span>(labelId, userId);
+        submissionRepository.save(sub);        <span class="comment">// write 2</span>
+
+        <span class="comment">// If ANYTHING above throws RuntimeException → both writes rolled back</span>
+    }
+}</pre>
+
+  <h2>Where to Put @Transactional — The Rule</h2>
+
+  <p>Always put <code>@Transactional</code> on the <strong>Service layer</strong>, not on the Repository
+  or Controller. The Service is where business logic lives — and a transaction should span exactly
+  one business operation.</p>
+
+<pre><span class="comment">// ✅ CORRECT — on the Service</span>
+<span class="annotation">@Service</span>
+<span class="keyword">public class</span> <span class="class-name">LabelService</span> {
+    <span class="annotation">@Transactional</span>
+    <span class="keyword">public void</span> approveLabelAndNotify(<span class="class-name">Long</span> id) { ... }
+}
+
+<span class="comment">// ❌ WRONG — on the Repository (Spring Data already handles this)</span>
+<span class="annotation">@Repository</span>
+<span class="keyword">public interface</span> <span class="class-name">LabelRepository</span> <span class="keyword">extends</span> <span class="class-name">JpaRepository</span>&lt;<span class="class-name">Label</span>, <span class="class-name">Long</span>&gt; {
+    <span class="annotation">@Transactional</span>  <span class="comment">// redundant — JpaRepository methods are already transactional</span>
+    <span class="class-name">List</span>&lt;<span class="class-name">Label</span>&gt; findByGenre(<span class="class-name">String</span> genre);
+}</pre>
+
+  <h2>Read-Only Transactions — A Free Optimisation</h2>
+
+  <p>For methods that only read data, use <code>@Transactional(readOnly = true)</code>.
+  Hibernate skips dirty-checking (comparing every entity to its original state),
+  which is faster and uses less memory.</p>
+
+<pre><span class="annotation">@Transactional</span>(readOnly = <span class="keyword">true</span>)  <span class="comment">// tells Hibernate: no writes, skip dirty checking</span>
+<span class="keyword">public</span> <span class="class-name">List</span>&lt;<span class="class-name">Label</span>&gt; getTopLabels() {
+    <span class="keyword">return</span> labelRepository.findTop10ByOrderBySubmissionCountDesc();
+}</pre>
+
+  <h2>The Gotchas That Bite Everyone</h2>
+
+  <div class="danger-box">
+    <strong>⚠️ Gotcha 1 — Self-invocation doesn't work</strong>
+    <p style="margin-top:8px;">Because <code>@Transactional</code> uses a proxy, calling a
+    <code>@Transactional</code> method <em>from within the same class</em> bypasses the proxy
+    entirely — no transaction is started.</p>
+  </div>
+
+<pre><span class="annotation">@Service</span>
+<span class="keyword">public class</span> <span class="class-name">LabelService</span> {
+
+    <span class="keyword">public void</span> doSomething() {
+        saveLabel();  <span class="comment">// ❌ calls this.saveLabel() directly — proxy bypassed, NO transaction!</span>
+    }
+
+    <span class="annotation">@Transactional</span>
+    <span class="keyword">public void</span> saveLabel() { ... }
+}
+
+<span class="comment">// Fix: inject the service into itself, or restructure into two classes</span></pre>
+
+  <div class="danger-box">
+    <strong>⚠️ Gotcha 2 — Checked exceptions don't trigger rollback by default</strong>
+    <p style="margin-top:8px;">Spring only rolls back on <code>RuntimeException</code> (unchecked)
+    by default. A checked exception (e.g. <code>IOException</code>) will <em>commit</em> the
+    transaction unless you tell it otherwise.</p>
+  </div>
+
+<pre><span class="comment">// ❌ IOException won't trigger rollback — transaction commits!</span>
+<span class="annotation">@Transactional</span>
+<span class="keyword">public void</span> importLabels() <span class="keyword">throws</span> <span class="class-name">IOException</span> {
+    labelRepository.save(label);
+    <span class="keyword">throw new</span> <span class="class-name">IOException</span>(<span class="string">"file not found"</span>); <span class="comment">// commits anyway!</span>
+}
+
+<span class="comment">// ✅ Fix: declare rollbackFor</span>
+<span class="annotation">@Transactional</span>(rollbackFor = <span class="class-name">Exception</span>.class)
+<span class="keyword">public void</span> importLabels() <span class="keyword">throws</span> <span class="class-name">IOException</span> { ... }</pre>
+
+  <div class="warning-box">
+    <strong>⚠️ Gotcha 3 — MySQL 5.7 + InnoDB only</strong>
+    <p style="margin-top:8px;">Transactions only work on InnoDB tables. If any table in LabelRadar
+    was created with MyISAM engine (older default), <code>@Transactional</code> will silently
+    have no effect on it. Always verify: <code>SHOW TABLE STATUS WHERE Name='your_table'</code>
+    — Engine should be InnoDB.</p>
+  </div>
+
+  <div class="labelradar-box">
+    <h3>🔍 LabelRadar Pattern — Service with Transactions</h3>
+<pre style="margin:12px 0 0; font-size:.82rem;"><span class="annotation">@Service</span>
+<span class="annotation">@Transactional</span>(readOnly = <span class="keyword">true</span>)  <span class="comment">// default for all methods: read-only</span>
+<span class="keyword">public class</span> <span class="class-name">LabelService</span> {
+
+    <span class="comment">// read — inherits readOnly=true from class level</span>
+    <span class="keyword">public</span> <span class="class-name">List</span>&lt;<span class="class-name">Label</span>&gt; findByGenre(<span class="class-name">String</span> genre) {
+        <span class="keyword">return</span> labelRepository.findByGenre(genre);
+    }
+
+    <span class="comment">// write — overrides to readOnly=false</span>
+    <span class="annotation">@Transactional</span>
+    <span class="keyword">public</span> <span class="class-name">Label</span> createLabel(<span class="class-name">LabelDto</span> dto) {
+        <span class="class-name">Label</span> label = <span class="keyword">new</span> <span class="class-name">Label</span>(dto.getName(), dto.getGenre());
+        <span class="keyword">return</span> labelRepository.save(label);
+    }
+
+    <span class="comment">// write with rollback on any exception</span>
+    <span class="annotation">@Transactional</span>(rollbackFor = <span class="class-name">Exception</span>.class)
+    <span class="keyword">public void</span> importLabels(<span class="class-name">List</span>&lt;<span class="class-name">LabelDto</span>&gt; dtos) <span class="keyword">throws</span> <span class="class-name">IOException</span> {
+        dtos.forEach(dto -> labelRepository.save(<span class="keyword">new</span> <span class="class-name">Label</span>(dto)));
+    }
+}</pre>
+  </div>
+
+  <p class="cite">📖 Further reading:
+    <a href="https://docs.spring.io/spring-framework/docs/current/reference/html/data-access.html#transaction" target="_blank">Spring Docs — Transaction Management</a> ·
+    <a href="https://www.baeldung.com/transaction-configuration-with-jpa-and-spring" target="_blank">Baeldung — @Transactional</a>
+  </p>
+
+  <div class="quiz-section">
+    <h2>🧠 Quick Check</h2>
+    <p style="color:var(--muted);font-size:.9rem;margin-bottom:24px;">4 questions</p>
+
+    <div class="question" id="q1">
+      <p>1. You have two repository saves in a <code>@Transactional</code> service method. The second save throws a <code>NullPointerException</code>. What happens to the first save?</p>
+      <div class="options">
+        <button class="option" onclick="answer(this,'q1',false)">A) It stays in the database — it already ran</button>
+        <button class="option" onclick="answer(this,'q1',true)">B) It gets rolled back — the whole transaction is cancelled</button>
+        <button class="option" onclick="answer(this,'q1',false)">C) It depends on whether you called flush() first</button>
+        <button class="option" onclick="answer(this,'q1',false)">D) Spring retries the entire method automatically</button>
+      </div>
+      <div class="feedback" id="q1-feedback"></div>
+    </div>
+
+    <div class="question" id="q2">
+      <p>2. A <code>@Transactional</code> service method calls another <code>@Transactional</code> method <em>in the same class</em>. Is the inner method's transaction active?</p>
+      <div class="options">
+        <button class="option" onclick="answer(this,'q2',false)">A) Yes — Spring detects it and starts a new transaction</button>
+        <button class="option" onclick="answer(this,'q2',true)">B) No — the proxy is bypassed, so no transaction starts for the inner call</button>
+        <button class="option" onclick="answer(this,'q2',false)">C) Yes — it joins the outer transaction automatically</button>
+        <button class="option" onclick="answer(this,'q2',false)">D) It depends on the propagation setting</button>
+      </div>
+      <div class="feedback" id="q2-feedback"></div>
+    </div>
+
+    <div class="question" id="q3">
+      <p>3. Your method throws a checked <code>IOException</code>. You used plain <code>@Transactional</code>. What happens?</p>
+      <div class="options">
+        <button class="option" onclick="answer(this,'q3',false)">A) Transaction rolls back — any exception causes rollback</button>
+        <button class="option" onclick="answer(this,'q3',true)">B) Transaction commits — Spring only rolls back on RuntimeException by default</button>
+        <button class="option" onclick="answer(this,'q3',false)">C) Spring wraps the IOException in a RuntimeException and rolls back</button>
+        <button class="option" onclick="answer(this,'q3',false)">D) The transaction is suspended until the exception is handled</button>
+      </div>
+      <div class="feedback" id="q3-feedback"></div>
+    </div>
+
+    <div class="question" id="q4">
+      <p>4. What's the benefit of <code>@Transactional(readOnly = true)</code> on a query method in LabelRadar?</p>
+      <div class="options">
+        <button class="option" onclick="answer(this,'q4',false)">A) MySQL rejects any accidental writes at the database level</button>
+        <button class="option" onclick="answer(this,'q4',false)">B) The method runs without a transaction at all</button>
+        <button class="option" onclick="answer(this,'q4',true)">C) Hibernate skips dirty-checking on loaded entities, reducing memory and CPU usage</button>
+        <button class="option" onclick="answer(this,'q4',false)">D) Spring caches the result automatically</button>
+      </div>
+      <div class="feedback" id="q4-feedback"></div>
+    </div>
+
+    <div class="score-box" id="score-box">
+      <div class="score-num" id="score-num"></div>
+      <p id="score-msg"></p>
+    </div>
+  </div>
+
+  <div class="next-hint">
+    💬 <strong>Got questions?</strong> Ask Claude: <em>"What is transaction propagation and when would I need REQUIRES_NEW?"</em>
+    or <em>"How do I check in LabelRadar logs that a transaction actually started?"</em><br><br>
+    ➡️ <strong>Next lesson:</strong> Exception Handling — @ControllerAdvice, @ExceptionHandler, and returning proper HTTP errors
+  </div>
+
+</div>
+
+<script>
+  const feedbacks = {
+    q1: {
+      correct: "Exactly! A RuntimeException triggers an automatic rollback of the entire transaction. Neither write reaches the database — it's all or nothing.",
+      wrong: "Not quite. @Transactional guarantees atomicity — a RuntimeException rolls back everything in the transaction, including the first save."
+    },
+    q2: {
+      correct: "Correct! @Transactional works via a Spring proxy that wraps your bean. When you call this.method() inside the same class, you're calling the raw object directly — the proxy never gets involved, so no transaction starts.",
+      wrong: "This is a classic gotcha. The proxy only intercepts calls from *outside* the class. Internal calls bypass it entirely — the @Transactional annotation on the inner method is simply ignored."
+    },
+    q3: {
+      correct: "Yes — this surprises a lot of people. Spring's default is to only roll back on unchecked exceptions (RuntimeException and its subclasses). For checked exceptions like IOException, use @Transactional(rollbackFor = Exception.class).",
+      wrong: "Counterintuitively, Spring commits on checked exceptions by default. Only RuntimeException (unchecked) triggers automatic rollback. Add rollbackFor = Exception.class to change this."
+    },
+    q4: {
+      correct: "Right! With readOnly=true, Hibernate knows it doesn't need to track entity state changes (dirty checking). This means less memory and faster execution — especially useful for LabelRadar's list/search endpoints.",
+      wrong: "The main benefit is Hibernate optimisation: it skips dirty-checking (comparing entity state at flush time), which saves memory and CPU. MySQL itself doesn't enforce the read-only constraint."
+    }
+  };
+
+  let answered = {q1:false,q2:false,q3:false,q4:false};
+  let correct = 0, total = 0;
+
+  function answer(btn, qid, isCorrect) {
+    if (answered[qid]) return;
+    answered[qid] = true; total++;
+    const options = btn.parentElement.querySelectorAll(".option");
+    options.forEach(o => o.disabled = true);
+    const feedback = document.getElementById(qid+"-feedback");
+    if (isCorrect) {
+      btn.classList.add("correct");
+      feedback.textContent = "✅ " + feedbacks[qid].correct;
+      feedback.className = "feedback show correct";
+      correct++;
+    } else {
+      btn.classList.add("wrong");
+      feedback.textContent = "❌ " + feedbacks[qid].wrong;
+      feedback.className = "feedback show wrong";
+      options.forEach(o => { if (o.onclick.toString().includes(",true)")) o.classList.add("correct"); });
+    }
+    if (total === 4) setTimeout(showScore, 600);
+  }
+
+  function showScore() {
+    const box = document.getElementById("score-box");
+    document.getElementById("score-num").textContent = correct + "/4";
+    const msgs = [
+      "Review the whole lesson again — the proxy mechanism is the key.",
+      "Good effort! Focus on the self-invocation and checked exception gotchas.",
+      "Nearly there! One more pass and you'll have it solid.",
+      "Perfect! You understand transactions deeply — including the tricky bits."
+    ];
+    document.getElementById("score-msg").textContent = msgs[correct];
+    box.classList.add("show");
+  }
+</script>
+</body>
+</html>
